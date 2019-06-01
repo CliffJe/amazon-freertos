@@ -1,5 +1,5 @@
 /*
- * FreeRTOS Kernel V10.2.0
+ * FreeRTOS Kernel V10.2.1
  * Copyright (C) 2019 Amazon.com, Inc. or its affiliates.  All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -361,6 +361,7 @@ void vPortYieldFromTick( void )
  */
 static void prvSetupTimerInterrupt( void )
 {
+#if 0
 uint32_t ulCompareMatch;
 uint8_t ucHighByte, ucLowByte;
 
@@ -392,6 +393,9 @@ uint8_t ucHighByte, ucLowByte;
 	ucLowByte = TIMSK;
 	ucLowByte |= portCOMPARE_MATCH_A_INTERRUPT_ENABLE;
 	TIMSK = ucLowByte;
+#endif
+	TCCR0B = _BV(CS01) | _BV(CS00);		// Clk/64
+	TIMSK0 =  _BV(TOIE0);				// Enable interupt from overflow
 }
 /*-----------------------------------------------------------*/
 
@@ -402,8 +406,8 @@ uint8_t ucHighByte, ucLowByte;
 	 * the context is saved at the start of vPortYieldFromTick().  The tick
 	 * count is incremented after the context is saved.
 	 */
-	void SIG_OUTPUT_COMPARE1A( void ) __attribute__ ( ( signal, naked ) );
-	void SIG_OUTPUT_COMPARE1A( void )
+	void TIMER0_OVF_vect( void ) __attribute__ ( ( signal, naked ) );
+	void TIMER0_OVF_vect( void )
 	{
 		vPortYieldFromTick();
 		asm volatile ( "reti" );
@@ -415,8 +419,8 @@ uint8_t ucHighByte, ucLowByte;
 	 * tick count.  We don't need to switch context, this can only be done by
 	 * manual calls to taskYIELD();
 	 */
-	void SIG_OUTPUT_COMPARE1A( void ) __attribute__ ( ( signal ) );
-	void SIG_OUTPUT_COMPARE1A( void )
+	void TIMER0_OVF_vect( void ) __attribute__ ( ( signal ) );
+	void TIMER0_OVF_vect( void )
 	{
 		xTaskIncrementTick();
 	}
