@@ -47,11 +47,6 @@ Changes from V2.6.0
 /* Start tasks with interrupts enables. */
 #define portFLAGS_INT_ENABLED					( ( StackType_t ) 0x80 )
 
-/* Hardware constants for timer 1. */
-#define portCLEAR_COUNTER_ON_MATCH				( ( uint8_t ) 0x08 )
-#define portPRESCALE_64							( ( uint8_t ) 0x03 )
-#define portCLOCK_PRESCALER						( ( uint32_t ) 64 )
-#define portCOMPARE_MATCH_A_INTERRUPT_ENABLE	( ( uint8_t ) 0x10 )
 
 /*-----------------------------------------------------------*/
 
@@ -357,45 +352,27 @@ void vPortYieldFromTick( void )
 /*-----------------------------------------------------------*/
 
 /*
- * Setup timer 1 compare match A to generate a tick interrupt.
+ * Setup timer 0 compare match A to generate a tick interrupt.
  */
+
 static void prvSetupTimerInterrupt( void )
 {
-#if 0
-uint32_t ulCompareMatch;
-uint8_t ucHighByte, ucLowByte;
-
-	/* Using 16bit timer 1 to generate the tick.  Correct fuses must be
-	selected for the configCPU_CLOCK_HZ clock. */
-
-	ulCompareMatch = configCPU_CLOCK_HZ / configTICK_RATE_HZ;
-
-	/* We only have 16 bits so have to scale to get our required tick rate. */
-	ulCompareMatch /= portCLOCK_PRESCALER;
-
-	/* Adjust for correct value. */
-	ulCompareMatch -= ( uint32_t ) 1;
-
-	/* Setup compare match value for compare match A.  Interrupts are disabled 
-	before this is called so we need not worry here. */
-	ucLowByte = ( uint8_t ) ( ulCompareMatch & ( uint32_t ) 0xff );
-	ulCompareMatch >>= 8;
-	ucHighByte = ( uint8_t ) ( ulCompareMatch & ( uint32_t ) 0xff );
-	OCR1AH = ucHighByte;
-	OCR1AL = ucLowByte;
+#if 1
+	OCR0A = ( uint8_t )( (configCPU_CLOCK_HZ / configTICK_RATE_HZ/ 64) - 1 );
 
 	/* Setup clock source and compare match behaviour. */
-	ucLowByte = portCLEAR_COUNTER_ON_MATCH | portPRESCALE_64;
-	TCCR1B = ucLowByte;
+	TCCR0A = _BV(WGM01);
+	TCCR0B = _BV(CS01) | _BV(CS00);         // Clk/64
 
 	/* Enable the interrupt - this is okay as interrupt are currently globally
 	disabled. */
-	ucLowByte = TIMSK;
-	ucLowByte |= portCOMPARE_MATCH_A_INTERRUPT_ENABLE;
-	TIMSK = ucLowByte;
+	TIMSK0 |= _BV(OCIE0A);
+	#define timerVec TIMER0_COMPA_vect
+#else
+	TCCR0B = _BV(CS01) | _BV(CS00);         // Clk/64
+	TIMSK0 =  _BV(TOIE0);                   // Enable interupt from overflow
+	#define timerVec TIMER0_OVF_vect
 #endif
-	TCCR0B = _BV(CS01) | _BV(CS00);		// Clk/64
-	TIMSK0 =  _BV(TOIE0);				// Enable interupt from overflow
 }
 /*-----------------------------------------------------------*/
 
@@ -406,8 +383,8 @@ uint8_t ucHighByte, ucLowByte;
 	 * the context is saved at the start of vPortYieldFromTick().  The tick
 	 * count is incremented after the context is saved.
 	 */
-	void TIMER0_OVF_vect( void ) __attribute__ ( ( signal, naked ) );
-	void TIMER0_OVF_vect( void )
+	void timerVec( void ) __attribute__ ( ( signal, naked ) );
+	void timerVec( void )
 	{
 		vPortYieldFromTick();
 		asm volatile ( "reti" );
@@ -419,12 +396,9 @@ uint8_t ucHighByte, ucLowByte;
 	 * tick count.  We don't need to switch context, this can only be done by
 	 * manual calls to taskYIELD();
 	 */
-	void TIMER0_OVF_vect( void ) __attribute__ ( ( signal ) );
-	void TIMER0_OVF_vect( void )
+	void timerVec( void ) __attribute__ ( ( signal ) );
+	void timerVec( void )
 	{
 		xTaskIncrementTick();
 	}
 #endif
-
-
-	
