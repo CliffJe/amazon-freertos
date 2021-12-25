@@ -28,25 +28,16 @@ import sys
 import textwrap
 from subprocess import CalledProcessError
 
-
 from make_common_makefile import main as make_common_file
 from make_configuration_directories import main as process_configurations
 from make_proof_makefiles import main as make_proof_files
 from make_cbmc_batch_files import create_cbmc_yaml_files
 
 CWD = os.getcwd()
-sys.path.append(os.path.normpath(os.path.join(CWD, "..", "patches")))
-
-from compute_patch import create_patches
-from compute_patch import DirtyGitError
-from compute_patch import PatchCreationError
-from patches_constants import HEADERS
 
 PROOFS_DIR = os.path.dirname(os.path.abspath(__file__))
 
-
 LOGGER = logging.getLogger("PrepareLogger")
-
 
 def build():
     process_configurations()
@@ -61,15 +52,16 @@ def build():
             """.format(str(e))))
         exit(1)
 
-    try:
-        create_patches(HEADERS)
-    except (DirtyGitError, PatchCreationError) as e:
-        logging.error(textwrap.dedent("""\
-            An error occured during patch creation.
-            The error message is: {}
-            """.format(str(e))))
-        exit(1)
+    #try:
+    #    create_patches(HEADERS)
+    #except (DirtyGitError, PatchCreationError) as e:
+    #    logging.error(textwrap.dedent("""\
+    #        An error occured during patch creation.
+    #        The error message is: {}
+    #        """.format(str(e))))
+    #    exit(1)
 
+################################################################
 
 if __name__ == '__main__':
     logging.basicConfig(format="{script}: %(levelname)s %(message)s".format(

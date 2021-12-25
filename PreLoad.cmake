@@ -1,9 +1,11 @@
-# Set your compiler path here if it's not in the PATH environment variable.
-set(AFR_TOOLCHAIN_PATH "" CACHE INTERNAL "")
+# This file is to provide an easy interface to specify vendor, board, and compiler for FreeRTOS.
+# It is supposed to be processed first by cmake before the top level CMakeLists.txt file. Note the
+# behavior of this file is not officially supported by CMake. After CMake 3.17, there's a better
+# way for this, https://cmake.org/cmake/help/v3.17/variable/CMAKE_PROJECT_PROJECT-NAME_INCLUDE_BEFORE.html
 
 # If VENDOR or BOARD is specified, try to find a match.
 if(DEFINED VENDOR OR DEFINED BOARD)
-    include("${CMAKE_CURRENT_LIST_DIR}/cmake/afr_utils.cmake")
+    include("${CMAKE_CURRENT_LIST_DIR}/tools/cmake/afr_utils.cmake")
 
     set(matched_boards)
     afr_get_boards(all_boards)
@@ -22,7 +24,7 @@ if(DEFINED VENDOR OR DEFINED BOARD)
         list(JOIN matched_boards ", " matched_boards)
         message(FATAL_ERROR "Multiple matching boards found: ${matched_boards}")
     else()
-        set(AFR_BOARD "${matched_boards}" CACHE INTERNAL "")
+        set(AFR_BOARD "${matched_boards}" CACHE STRING "")
     endif()
 endif()
 
@@ -35,7 +37,7 @@ if(DEFINED COMPILER)
                 need to delete cache and reconfigure if you want to switch compiler.")
         endif()
     else()
-        set(toolchain_dir "${CMAKE_CURRENT_LIST_DIR}/cmake/toolchains")
+        set(toolchain_dir "${CMAKE_CURRENT_LIST_DIR}/tools/cmake/toolchains")
         set(toolchain_file "${toolchain_dir}/${COMPILER}.cmake")
         if(EXISTS "${toolchain_file}")
             set(CMAKE_TOOLCHAIN_FILE "${toolchain_file}" CACHE INTERNAL "")
@@ -44,6 +46,12 @@ if(DEFINED COMPILER)
                 select one from \"cmake/toolchains\" folder.")
         endif()
     endif()
+endif()
+
+# Disable compiler checks when only outputing metadata.
+if(AFR_METADATA_MODE)
+    set(CMAKE_C_COMPILER_FORCED TRUE CACHE INTERNAL "")
+    set(CMAKE_CXX_COMPILER_FORCED TRUE CACHE INTERNAL "")
 endif()
 
 # Remove these helper variables from CMake cache.
